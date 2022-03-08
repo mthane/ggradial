@@ -241,8 +241,9 @@ radial_barchart_post_treatment <- function(df,
   label_data <- label_data %>% left_join(teffect_segments %>% select(f, effect_category), by = "f")
 
   if(interactive) {
+
     df_plot <- df_plot %>%
-      left_join(teffect_segments %>% select(f, avg_T0, avg_T1)) %>%
+      left_join(teffect_segments) %>% select(f, avg_T0, avg_T1) %>%
       mutate(tooltip = case_when(
         tooltip_bars == "sd" ~ paste0("&sigma;=", format(round(sd, 3), nsmall = 3)),
         tooltip_bars == "ci" ~ paste0("ci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]"),
@@ -399,7 +400,4 @@ radial_barchart_post_treatment <- function(df,
     p
   }
 }
-
-library(tidyverse)
-library(ggiraph)
 

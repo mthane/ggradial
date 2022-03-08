@@ -1,0 +1,15 @@
+
+
+ERROR_DF_WRONG_TYPE <- "df needs to be a data frame"
+ERROR_GN_WRONG_TYPE <- "group_names needs to be a character vector or factor"
+ERROR_IL_WRONG_TYPE <- "inner_label needs to be of type character"
+ERROR_CIC_UNKNOWN_COLOR <- "color_inner_circle has unknown color"
+ERROR_SR_NOT_NUMERIC <- "scale_range is not numeric"
+ERROR_SR_WRONG_ORDER <- "scale_range needs to start with the lower value"
+ERROR_SR_SAME_VALUE <- "scale_range needs to have to different values"
+ERROR_INTACT_WRONG_TYPE <- "interactive needs to be of type boolean"
+ERROR_TTB_NULL_TYPE <- "tooltip_bars cannot be of NULL"
+ERROR_TTL_WRONG_TYPE <- "tooltip_labels needs to be a data frame"
+ERROR_TTL_MISSING_COLUMN <- "tooltip_labels does not contain the columns label and description"
+ERROR_SGN_WRONG_TYPE <- "show_group_names needs to be of type boolean"
+ERROR_LL_WRONG_TYPE <- "legend_label needs to be of type character"

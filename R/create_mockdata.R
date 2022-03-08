@@ -1,4 +1,6 @@
 ##### MOCK DATA #####
+#' @import tidyverse
+#' @import ggiraph
 create_mockdata <- function(N = 100,
                             Nf = 20,
                             ncluster = 5,

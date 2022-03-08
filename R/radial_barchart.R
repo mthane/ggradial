@@ -1,19 +1,4 @@
 
-
-ERROR_DF_WRONG_TYPE <- "df needs to be a data frame"
-ERROR_GN_WRONG_TYPE <- "group_names needs to be a character vector or factor"
-ERROR_IL_WRONG_TYPE <- "inner_label needs to be of type character"
-ERROR_CIC_UNKNOWN_COLOR <- "color_inner_circle has unknown color"
-ERROR_SR_NOT_NUMERIC <- "scale_range is not numeric"
-ERROR_SR_WRONG_ORDER <- "scale_range needs to start with the lower value"
-ERROR_SR_SAME_VALUE <- "scale_range needs to have to different values"
-ERROR_INTACT_WRONG_TYPE <- "interactive needs to be of type boolean"
-ERROR_TTB_NULL_TYPE <- "tooltip_bars cannot be of NULL"
-ERROR_TTL_WRONG_TYPE <- "tooltip_labels needs to be a data frame"
-ERROR_TTL_MISSING_COLUMN <- "tooltip_labels does not contain the columns label and description"
-ERROR_SGN_WRONG_TYPE <- "show_group_names needs to be of type boolean"
-ERROR_LL_WRONG_TYPE <- "legend_label needs to be of type character"
-
 #' Creates a radial barchart which shows a cluster's average feature values.
 #'
 #' @param df The dataset as data frame. Should be scaled. See ?scale.
@@ -181,7 +166,7 @@ radial_barchart_static <- function(df,
     mutate(angle = if_else(angle < -90, angle + 180, angle)) #%>%
     #drop_na() #%>%
   # mutate(size = if_else(avg >= 0 & (avg * 5 + nchar(f) > 20), 7/.pt, 8/.pt))
-  print(label_data)
+
   if(!is.null(tooltip_labels))
   {
     label_data <- label_data %>%
@@ -189,7 +174,6 @@ radial_barchart_static <- function(df,
   } else {
     label_data <- label_data %>% mutate(f_desc = NA_character_)
   }
-  View(label_data)
   x_lim <- c(-2,2)+range(df_plot$f_id)
   y_lim <- c(scale_rng[1] - (scale_rng[2] - scale_rng[1]) * c(0.5, 1)[show_group_names+1],
              scale_rng[2] + 1.05)
