@@ -1,6 +1,3 @@
-## Note:
-## TODO: show_group_names = FALSE --> ERROR
-## TODO: difference between n in static and line chart, not sure if error but probably
 
 #' Creates a radial line chart which shows the average feature values for each cluster.
 #'
@@ -9,18 +6,19 @@
 #' @param group_names Character vector with group names of features.
 #' The number of columns in df and the length of group_names must be equal. Group
 #' names are displayed in the inner circle.
-#' @param cluster TODO...
+#' @param cluster String containing the column name, which indicates the cluster membership in df (optional).
 #' @param inner_label Label inside the inner circle, e.g. name of the chart (optional).
 #' @param color_inner_circle Color of the inner circle (optional).
-#' @param color_clusters TODO...
-#' @param scale_rng Min and max values to be shown.
-#' @param interactive Boolean to indicate whether the plot should be interactive or not.
+#' @param color_clusters Colors of the different clusters (optional).
+#' @param scale_rng Min and max values to be shown (optional).
+#' @param interactive Boolean to indicate whether the plot should be interactive or not (optional).
 #' @param tooltip_bars String to choose which tooltip texts will be displayed for the bars (when interactive).
 #' Options to select from: average, sd (standard deviation), ci (confidence interval), all. Default is average (optional).
 #' @param tooltip_labels Data frame to provide the tooltip texts for the labels (when interactive), needs to have a "label" and a "description" column. The description provides the tooltip text for the assigned label (optional).
-#' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true. Shows numbers instead of names when set to false (optional).
+#' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
 #'
 #' @return the radial line chart as ggplot
+#' @export
 
 radial_line_chart <- function(df,
                               group_names,
@@ -162,7 +160,9 @@ radial_line_chart <- function(df,
       title / max(end) < 0.1 | title / max(end) > 0.9 ~ 1,
       between(title / max(end), 0.4, 0.6) ~ 0,
       TRUE ~ 0.5
-    ))
+    )) %>%
+    filter(!is.na(title))
+
   if (!show_group_names)
     base_data <- base_data %>%
     mutate(group = factor(group, labels = seq_along(levels(factor(group)))))
@@ -366,34 +366,34 @@ radial_line_chart <- function(df,
       color = "black",
       size = 0.6
     )
-  # if(show_group_names) {
-  # add group ticks ----
-  p <-
-    p + geom_segment(data = base_data,
-                     aes(
-                       x = title,
-                       xend = title,
-                       y = -1.8,
-                       yend = -1.7
-                     ),
-                     color = "black")
-  # add group names ----
-  p <-
-    p + geom_text(
-      data = base_data,
-      aes(
-        x = title,
-        y = scale_rng[1] - 0.15 * (scale_rng[2] - scale_rng[1]),
-        label = group,
-        hjust = hjust,
-        vjust = vjust
-      ),
-      lineheight = 0.85,
-      colour = "black",
-      alpha = 0.8,
-      size = font_sizes$group_names
-    )
-  # }
+  if(show_group_names) {
+    # add group ticks ----
+    p <-
+      p + geom_segment(data = base_data,
+                       aes(
+                         x = title,
+                         xend = title,
+                         y = -1.8,
+                         yend = -1.7
+                       ),
+                       color = "black")
+    # add group names ----
+    p <-
+      p + geom_text(
+        data = base_data,
+        aes(
+          x = title,
+          y = scale_rng[1] - 0.15 * (scale_rng[2] - scale_rng[1]),
+          label = group,
+          hjust = hjust,
+          vjust = vjust
+        ),
+        lineheight = 0.85,
+        colour = "black",
+        alpha = 0.8,
+        size = font_sizes$group_names
+      )
+  }
 
   # add labels on top of each bar ----
   current_opts <- list(
@@ -424,8 +424,7 @@ radial_line_chart <- function(df,
   p <- p + scale_size_identity()
 
   if(interactive) {
-    # Only for testing
-    suppressWarnings(girafe(ggobj = p))
+    girafe(ggobj = p)
   } else {
     p
   }

@@ -12,4 +12,12 @@ ERROR_TTB_NULL_TYPE <- "tooltip_bars cannot be of NULL"
 ERROR_TTL_WRONG_TYPE <- "tooltip_labels needs to be a data frame"
 ERROR_TTL_MISSING_COLUMN <- "tooltip_labels does not contain the columns label and description"
 ERROR_SGN_WRONG_TYPE <- "show_group_names needs to be of type boolean"
-ERROR_LL_WRONG_TYPE <- "legend_label needs to be of type character"
+
+ERROR_DF_MISSING_COLUMN_ID <- "df does not contain an id column"
+ERROR_DF_MISSING_COLUMN_PHASE <- "df does not contain a phase column"
+ERROR_DF_MISSING_FEATURE_NAME <- "df does not contain all provided feature columns"
+ERROR_DT_WRONG_TYPE <- "delta_threshold needs to be of type numeric"
+ERROR_DT_NOT_IN_RANGE <- "delta_threshold needs to have a value between 0.05 and 1"
+
+ERROR_DF_MISSING_COLUMN <- "df does not contain a cluster column"
+ERROR_CC_UNKNOWN_COLOR <- "color_inner_circle has unknown color"

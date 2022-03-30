@@ -1,41 +1,33 @@
-## Removed: cluster_idx, .cluster, cluster_assignment, color_clusters
-## Other changes: added cluster_id to cluster_abbrev, legend
 
-## Notes:
-## Make sure that there is no cluster id. The function will require only the data of one cluster, so no cluster id - more intuitive and simple
-## The function should do only one thing but well
-
-## Not working:
-## arrows have colors (maybe no problem)
-## more than one post treatment - will probably require a good amount of work
-
-
-#' Creates a radial barchart which shows a cluster's average feature values.
+#' Creates a radial barchart which shows a cluster's average feature values at different time periods.
 #'
 #' @param df The dataset as data frame. Should be scaled. See ?scale.
 #' @param group_names Character vector with group names of features.
 #' The lengths of df and group_names must be equal. Group
 #' names are displayed in the inner circle.
-#' @param cluster_name Name of the cluster (optional)
-#' TODO: change text @param cluster_abbrev Prefix of cluster_idx, e.g. "PT1", "PT2" etc.
+#' @param id String containing the column name of the ids in df (optional).
+#' @param phase String containing the column name of the phase in df (optional).
+#' @param feature_names Column names of all the features (optional).
+#' @param inner_label Label inside the inner circle, e.g. name of the chart (optional).
 #' @param color_inner_circle Color of the inner circle (optional).
-#' @param scale_rng Min and max values to be shown.
-#' @param interactive Boolean to indicate whether the plot should be interactive or not.
+#' @param scale_rng Min and max values to be shown (optional).
+#' @param interactive Boolean to indicate whether the plot should be interactive or not (optional).
 #' @param tooltip_bars String to choose which tooltip texts will be displayed for the bars (when interactive).
 #' Options to select from: average, standard deviation, ci (confidence interval), difference, percentage difference, all. Default is average (optional).
 #' @param tooltip_labels Data frame to provide the tooltip texts for the labels (when interactive), needs to have a "label" and a "description" column. The description provides the tooltip text for the assigned label (optional).
-#' @param show_group_names ...
-#' @import tidyverse
-#' @import ggiraph
+#' @param delta_threshold Numeric value that must be exceeded to show that the treatment had an effect. Must be between 0.05 and 1.0 (optional).
+#' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
+#'
 #' @return the radial barchart as ggplot
 #' @export
+
 radial_barchart_post_treatment <- function(df,
                                            group_names,
                                            id = ".id",
                                            phase = ".phase",
                                            feature_names = NULL,
                                            inner_label = "",
-                                           color_inner_circle = NULL,
+                                           color_inner_circle = "grey60",
                                            scale_rng = c(-1,1)*1.5,
                                            interactive = FALSE,
                                            tooltip_bars = "",
@@ -47,11 +39,12 @@ radial_barchart_post_treatment <- function(df,
   # df
   if(!is.data.frame(df)) stop(ERROR_DF_WRONG_TYPE)
 
-
-
   # group_names
   if(!is.character(group_names) && !is.factor(group_names))
     stop(ERROR_GN_WRONG_TYPE)
+
+  # inner_label
+  if(!is.character(inner_label)) stop(ERROR_IL_WRONG_TYPE)
 
   # color_inner_circle
   an.error.occured <- FALSE
@@ -71,10 +64,35 @@ radial_barchart_post_treatment <- function(df,
   if(is.null(tooltip_bars)) stop(ERROR_TTB_NULL_TYPE)
 
   # tooltip_labels
+  if(!is.null(tooltip_labels)) {
+    if (!is.data.frame(tooltip_labels)) stop(ERROR_TTL_WRONG_TYPE)
+    if (!all(c("label", "description")%in%colnames(tooltip_labels))) stop(ERROR_TTL_MISSING_COLUMN)
+  }
 
   # show_group_names
+  if(!is.logical(show_group_names)) stop(ERROR_SGN_WRONG_TYPE)
 
   # legend_label
+  # if(!is.character(legend_label)) stop(ERROR_LL_WRONG_TYPE)
+  ## ------------------------------------------------------- Assertions
+
+  # delta_threshold
+  if(!is.numeric(delta_threshold)) stop(ERROR_DT_WRONG_TYPE)
+  if(delta_threshold < 0.05 | delta_threshold > 1) stop(ERROR_DT_NOT_IN_RANGE)
+
+  # id
+  if (is.null(id) || !(id %in% names(df)))
+    stop(ERROR_DF_MISSING_COLUMN_ID)
+
+  # phase
+  if (is.null(phase) || !(phase %in% names(df)))
+    stop(ERROR_DF_MISSING_COLUMN_PHASE)
+
+  # feature_names
+  if(!all(feature_names%in%colnames(df))){
+    stop(ERROR_DF_MISSING_FEATURE_NAME)
+  }
+
   ## ------------------------------------------------------- Assertions
 
   ## probably could be removed an checked with an assert statement
@@ -82,23 +100,18 @@ radial_barchart_post_treatment <- function(df,
   #if(length(vars_dummy) > 0) for(d in vars_dummy) df <- mutate(df, !!d := NA_character_)
   #df <- select(df, .id, .phase, everything())
 
-  if(!phase%in%colnames(df)){
-    stop("The passed data does not contain the columns id and phase!")
-  }
+  # if(!all(c(id,phase)%in%colnames(df))){
+  #   stop("The passed data does not contain the columns id and phase!")
+  # }
+
 
   df <- df%>%
+    select(!c(phase,id))%>%
     mutate(.id = df[[id]])%>%
     mutate(.phase = df[[phase]])
 
   if(is.null(feature_names)){
     feature_names <- setdiff(colnames(df),c(".id",".phase"))
-  }
-
-
-  # Set fill color of inner circle.
-  ## TODO: Set default color here
-  if(is.null(color_inner_circle)) {
-    color_inner_circle <- colorRampPalette(RColorBrewer::brewer.pal(9, "Set1"))(1)
   }
 
   # Convert group_names to factor if it is not already
@@ -112,7 +125,7 @@ radial_barchart_post_treatment <- function(df,
 
   # Calculate cluster average for each feature
   data <- data_cluster %>%
-    pivot_longer(names_to = "f", values_to = "v", cols = -c(.id, .phase)) %>%
+    pivot_longer(names_to = "f", values_to = "v", cols = feature_names) %>%
     #inner_join(janitor::tabyl(data_cluster, .cluster) %>% select(.cluster, n), by = ".cluster") %>%
     mutate(n = nrow(df)) %>%
     group_by(.phase, f) %>%
@@ -159,9 +172,11 @@ radial_barchart_post_treatment <- function(df,
     #                          TRUE ~ 0)) %>%
     mutate(vjust = case_when(title/max(end) < 0.1 | title/max(end) > 0.9 ~ 1,
                              between(title/max(end), 0.4, 0.6) ~ 0,
-                             TRUE ~ 0.5))
+                             TRUE ~ 0.5)) %>%
+    filter(!is.na(title))
+
   if(!show_group_names) base_data <- base_data %>%
-    mutate(group = factor(group, labels = seq_along(levels(group))))
+    mutate(group = factor(group, labels = seq_along(levels(factor(group)))))
 
   # grid_data ----
   # position of grid lines between groups
@@ -243,7 +258,7 @@ radial_barchart_post_treatment <- function(df,
   if(interactive) {
 
     df_plot <- df_plot %>%
-      left_join(teffect_segments) %>% select(f, avg_T0, avg_T1) %>%
+      left_join(teffect_segments %>% select(f, avg_T0, avg_T1)) %>%
       mutate(tooltip = case_when(
         tooltip_bars == "sd" ~ paste0("&sigma;=", format(round(sd, 3), nsmall = 3)),
         tooltip_bars == "ci" ~ paste0("ci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]"),
@@ -284,7 +299,7 @@ radial_barchart_post_treatment <- function(df,
   # draw inner circle ----
   p <- p + annotate("rect", xmin = x_lim[1], xmax = x_lim[2],
                     ymin = y_lim[1], ymax = scale_rng[1]-0.2,
-                    color = "transparent", fill = color_inner_circle, alpha = 0.2)
+                    color = "transparent", fill = col2rgb(color_inner_circle), alpha = 0.2)
   # central inner label: cluster id and number of instances ----
   p <- p +
     annotate("text", x = x_lim[1], y = y_lim[1], # + 0.5,
@@ -311,20 +326,15 @@ radial_barchart_post_treatment <- function(df,
     p <- p + theme(legend.key.height = unit(1, "lines"))
   }
 
-
-  max_x = unique(label_data$f_id_max)[1]
-  x_interval = max_x / length(unique(label_data$f))
-
-  offset_x = x_interval/10
   p <- p + scale_fill_distiller(palette = "RdYlBu",
                                 limits = c(scale_rng[1], scale_rng[2]),
                                 breaks = c(scale_rng[1], 0, scale_rng[2]),
                                 labels = c("-1.5 SD", "Patient\naverage", "+1.5 SD"))
 
   # add lines between features
-  p <- p+geom_segment(data=label_data,aes(x=f_id-x_interval/2+offset_x  ,y=-1.5,
-                                          xend=f_id-x_interval/2+offset_x  ,yend=1.5),
-                      linetype="dashed",alpha=0.5)
+  # p <- p+geom_segment(data=label_data,aes(x=f_id  ,y=y-1.5,
+  #                                         xend=f_id  ,yend=y+1.5),
+  #                     linetype="dashed",alpha=0.5)
 
   # add some lines between feature groups ----
   p <- p + geom_segment(data = grid_data, aes(x = start, xend = end, y = y, yend = y),
@@ -342,16 +352,16 @@ radial_barchart_post_treatment <- function(df,
   p <- p + geom_segment(data = base_data, aes(x = start - 0.5, y = -1.7,
                                               xend = end + 0.5, yend = -1.7),
                         color = "black", size = 0.6)
-  # if(show_group_names) {
-  # add group ticks ----
-  p <- p + geom_segment(data = base_data, aes(x = title, xend = title,
-                                              y = -1.8, yend = -1.7), color = "black")
-  # add group names ----
-  p <- p + geom_text(data = base_data, aes(x = title, y = scale_rng[1] - 0.15 * (scale_rng[2] - scale_rng[1]),
-                                           label = group, hjust = hjust, vjust = vjust),
-                     lineheight = 0.85,
-                     colour = "black", alpha = 0.8, size = font_sizes$group_names)
-  # }
+  if(show_group_names) {
+    # add group ticks ----
+    p <- p + geom_segment(data = base_data, aes(x = title, xend = title,
+                                                y = -1.8, yend = -1.7), color = "black")
+    # add group names ----
+    p <- p + geom_text(data = base_data, aes(x = title, y = scale_rng[1] - 0.15 * (scale_rng[2] - scale_rng[1]),
+                                             label = group, hjust = hjust, vjust = vjust),
+                       lineheight = 0.85,
+                       colour = "black", alpha = 0.8, size = font_sizes$group_names)
+  }
 
   # add labels on top of each bar ----
   current_opts <- list(
@@ -390,7 +400,7 @@ radial_barchart_post_treatment <- function(df,
   #                                           color = effect_category),
   #              y = scale_rng[1], yend = scale_rng[1],
   #              size = 1) +
-  guides(color = guide_legend(title = "Treatment effect")) +
+  p <- p + guides(color = guide_legend(title = "Treatment effect")) +
     scale_color_manual(values = c("darkgreen", "black", "red"), drop = FALSE,
                        labels = unname(latex2exp::TeX(levels(teffect_segments$effect_category))))
 

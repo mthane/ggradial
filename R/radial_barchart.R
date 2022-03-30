@@ -16,6 +16,7 @@
 #' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
 #'
 #' @return the radial barchart as ggplot
+#' @export
 
 
 radial_barchart_static <- function(df,
@@ -26,8 +27,7 @@ radial_barchart_static <- function(df,
                                    interactive = FALSE,
                                    tooltip_bars = "",
                                    tooltip_labels = NULL,
-                                   show_group_names = TRUE,
-                                   legend_label = "values"
+                                   show_group_names = TRUE
 ) {
 
   ## ------------------------------------------------------- Assertions
@@ -66,9 +66,6 @@ radial_barchart_static <- function(df,
 
   # show_group_names
   if(!is.logical(show_group_names)) stop(ERROR_SGN_WRONG_TYPE)
-
-  # legend_label
-  if(!is.character(legend_label)) stop(ERROR_LL_WRONG_TYPE)
   ## ------------------------------------------------------- Assertions
 
   # Convert group_names to factor if it is not already
@@ -99,8 +96,7 @@ radial_barchart_static <- function(df,
     mutate(f_id = if_else(q_id == 1, id, id + 2*(q_id-1))) %>%
     mutate(f_id_adj = f_id) %>%
     complete(f_id = -1:(max(f_id)+2), fill = list(feature = "", avg = NA_real_)) %>%
-    ungroup()%>%
-    mutate(f= ifelse(is.na(f),paste0("lines",f_id),f))
+    ungroup()
 
   # browser()
   # base_data ----
@@ -121,7 +117,9 @@ radial_barchart_static <- function(df,
     #                          TRUE ~ 0)) %>%
     mutate(vjust = case_when(title/max(end) < 0.1 | title/max(end) > 0.9 ~ 1,
                              between(title/max(end), 0.4, 0.6) ~ 0,
-                             TRUE ~ 0.5))
+                             TRUE ~ 0.5)) %>%
+    filter(!is.na(title))
+
   ## Sets numbers instead of names
   if(!show_group_names) base_data <- base_data %>%
     mutate(group = factor(group, labels = seq_along(levels(factor(group)))))
@@ -139,32 +137,26 @@ radial_barchart_static <- function(df,
     summarize(start = f_id[1], end = f_id[2]) %>%
     ungroup() %>%
     mutate(y = list(seq(scale_rng[1], scale_rng[2], 0.5))) %>%
-    unnest(y)#%>%
-    #filter(!g%in%c(max(g),min(g)))
+    unnest(y)
+
   # label_data ----
   # position of feature names
   label_data <- df_plot %>%
-    mutate(f= ifelse(is.na(f),paste0("lines",f_id),f))%>%
-    mutate(f_id_min = min(f_id) ,
-           f_id_max = max(f_id)+2 ) %>%
-    #filter(!is.na(f)) %>%
+    mutate(f_id_min = min(f_id) - 2, f_id_max = max(f_id) + 2) %>%
+    filter(!is.na(f)) %>%
     mutate(y = avg + error) %>%
     group_by(f, f_id_min, f_id_max) %>%
     summarize(f_id = mean(f_id), avg = max(avg), y = max(y)) %>%
-
-    #filter(!f_id%in%c(-1,0))%>%
     ungroup() %>%
-    #complete(f_id = -3:(max(f_id)+3), fill = list(f = "", avg = NA_real_,y=0,hjust=0)) %>%
-    mutate(rel_pos = (f_id+2) / diff(c(f_id_min[1], f_id_max[1]))) %>%
+    mutate(rel_pos = f_id / diff(c(f_id_min[1], f_id_max[1]))) %>%
     # select(f_id_adj, f, avg) %>%
     # mutate(feature_suffix = str_trunc(feature_suffix, 12)) %>%
     mutate(y = if_else(y > 0, y, 0)) %>%
-    mutate(angle = 90 - 360 * (rel_pos)) %>%
-    #mutate(angle = 90 - 360 * ((row_number() + 2 - 0.5) / (n() + 4))) %>%
-
+    mutate(angle = 90 - 360 * (rel_pos + 0.035)) %>%
+    # mutate(angle = 90 - 360 * ((row_number() + 2 - 0.5) / (n() + 4))) %>%
     mutate(hjust = if_else(angle < -90, 1, 0)) %>%
-    mutate(angle = if_else(angle < -90, angle + 180, angle)) #%>%
-    #drop_na() #%>%
+    mutate(angle = if_else(angle < -90, angle + 180, angle)) %>%
+    drop_na() #%>%
   # mutate(size = if_else(avg >= 0 & (avg * 5 + nchar(f) > 20), 7/.pt, 8/.pt))
 
   if(!is.null(tooltip_labels))
@@ -185,7 +177,7 @@ radial_barchart_static <- function(df,
         tooltip_bars == "ci" ~ paste0("ci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]"),
         tooltip_bars == "all" ~ paste0("&mu;=", format(round(avg, 3), nsmall = 3), "\n&sigma;=", format(round(sd, 3), nsmall = 3), "\nci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]")))
   }
-    # browser()
+  # browser()
   # define font sizes ----
   font_sizes <- list(
     inner_label = ifelse(interactive, 14/.pt, 10/.pt),
@@ -251,7 +243,7 @@ radial_barchart_static <- function(df,
   p <- p + scale_fill_distiller(palette = "RdYlBu",
                                 limits = c(scale_rng[1], scale_rng[2]),
                                 breaks = c(scale_rng[1], 0, scale_rng[2]),
-                                labels = c("-1.5 SD", legend_label, "+1.5 SD"))
+                                labels = c(scale_rng[1], "Patient\naverage", scale_rng[2]))
 
   # add some lines between feature groups ----
   ## the small grey lines
@@ -270,16 +262,16 @@ radial_barchart_static <- function(df,
   p <- p + geom_segment(data = base_data, aes(x = start - 0.5, y = -1.7,
                                               xend = end + 0.5, yend = -1.7),
                         color = "black", size = 0.6)
-  # if(show_group_names) {
-  # add group ticks ----
-  p <- p + geom_segment(data = base_data, aes(x = title, xend = title,
-                                              y = -1.8, yend = -1.7), color = "black")
-  # add group names ----
-  p <- p + geom_text(data = base_data, aes(x = title, y = scale_rng[1] - 0.15 * (scale_rng[2] - scale_rng[1]),
-                                           label = group, hjust = hjust, vjust = vjust),
-                     lineheight = 0.85,
-                     colour = "black", alpha = 0.8, size = font_sizes$group_names)
-  # }
+  if(show_group_names) {
+    # add group ticks ----
+    p <- p + geom_segment(data = base_data, aes(x = title, xend = title,
+                                                y = -1.8, yend = -1.7), color = "black")
+    # add group names ----
+    p <- p + geom_text(data = base_data, aes(x = title, y = scale_rng[1] - 0.15 * (scale_rng[2] - scale_rng[1]),
+                                             label = group, hjust = hjust, vjust = vjust),
+                       lineheight = 0.85,
+                       colour = "black", alpha = 0.8, size = font_sizes$group_names)
+  }
   # add standard error as error bar ----
   p <- p + geom_errorbar(aes(x = f_id_adj, ymin = avg-error, ymax = avg+error),
                          color = "grey60", size = 0.4, width = 0.5, #alpha = 0.5,
@@ -288,16 +280,11 @@ radial_barchart_static <- function(df,
   # p <- p + geom_segment(aes(x = f_id_adj-0.2, y = -sd, xend = f_id_adj+0.2, yend = -sd),
   #                       color = "grey60", size = 0.4, alpha = 0.5, na.rm = TRUE)
 
-  label_data <- label_data %>%
-    mutate(y=ifelse(is.na(y),0,y))
-  #
-  #   complete(f_id = -2:(max(f_id)+3), fill = list(f = "", avg = NA_real_,hjust=0,y=0))%>%
-  #   mutate(y=ifelse(is.na(y),0,y))
-  View(label_data)
+
   # add labels on top of each bar ----
   current_opts <- list(
     data = label_data,
-    mapping = aes(x = f_id, y = y + 0.2,
+    mapping = aes(x = f_id, y = y + 0.1,
                   label = f, hjust = hjust,
                   angle = angle), size = font_sizes$feature_names*c(1,0.8)[1],
     alpha = 0.6, show.legend = FALSE
@@ -315,8 +302,7 @@ radial_barchart_static <- function(df,
 
   ## Added for interactive plot
   if(interactive) {
-    # Only for testing
-    suppressWarnings(girafe(ggobj = p))
+    girafe(ggobj = p)
   } else {
     p
   }

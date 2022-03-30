@@ -3,11 +3,11 @@ Type: Package
 Title: A ggplot2 extension for radar and radial bar charts to visualize high-dimensional clusters and their evolution
 Version: 0.1.0
 Author: Thorben Hebbelmann, Michael Thane, Marcel Schulte
-Maintainer: The package maintainer <yourself@somewhere.net>
+Maintainer: The package maintainer <mthane93@gmail.com>
 Description: 
-* radial_barchart_static: Creates a radial barchart which shows a cluster's average feature values.
-* radial_barchart_post_treatment: Creates a radial barchart which shows a cluster's average feature values and allows a comparison between different points in time. 
-* radial_line_chart: Creates a radial line chart which shows the average feature values for each cluster.
+  radial_barchart_static - Creates a radial barchart which shows a cluster's average feature values.
+  radial_barchart_post_treatment - Creates a radial barchart which shows a cluster's average feature values and allows a comparison between different points in time. 
+  radial_line_chart - Creates a radial line chart which shows the average feature values for each cluster.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
