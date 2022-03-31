@@ -1,6 +1,6 @@
 ---
 title: "vignette-ggradial"
-author: "Thorben Hebbelmann, Michael Thane, Marcel Schulte"
+author: "Thorben Hebbelmann, Marcel Schulte, Michael Thane"
 date: "03/01/2022"
 output: rmarkdown::html_vignette
 vignette: >
@@ -8,6 +8,11 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+
+<style>
+body {
+text-align: justify}
+</style>
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -18,10 +23,10 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-The package 'ggradial' provides geoms for ‘ggplot2’ with radial bar chart and radial line chart extensions in order to visualize high-dimensional clusters and their evolution.
+The package 'ggradial' provides wrapper functions for ‘ggplot2’ with radial bar chart and radial line chart extensions in order to visualize high-dimensional clusters and their evolution.
 
 * radial_barchart_static: Creates a radial barchart which shows a cluster's average feature values.
-* radial_barchart_post_treatment: Creates a radial barchart which shows a cluster's average feature values and allows a comparison between different points in time. 
+* radial_barchart_compare: Creates a radial barchart which shows a cluster's average feature values and allows a comparison between different points in time. 
 * radial_line_chart: Creates a radial line chart which shows the average feature values for each cluster.
 
 
@@ -49,20 +54,40 @@ First we take a view over the parameters and their functions:
 * tooltip_labels: Data frame to provide the tooltip texts for the labels (when interactive), needs to have a "label" and a "description" column. The description provides the tooltip text for the assigned label (optional).
 * show_group_names: Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
 
+Only comparison chart:
+
+* id: String containing the column name of the ids in df (optional).
+* phase: String containing the column name of the phase in df (optional).
+* feature_names: Column names of all the features (optional).
+* delta_threshold: Numeric value that must be exceeded to show that the treatment had an effect. Must be between 0.05 and 1.0 (optional).
+
+Only line chart:
+
+* cluster: String containing the column name, which indicates the cluster membership in df (optional).
+* color_clusters: Colors of the different clusters (optional).
+
+
+Note: It is recommended to use more than 30 features for an optimal visualization. The interactive mode for the radial_barchart_compare is only available for 2 treatments.
+
 Given the parameters the package is used as in following example:
 
-```{r usage-example, eval = FALSE}
+```{r usage-example, message=FALSE, warning=FALSE}
 library(ggradial)
 library(tidyverse)
 library(ggiraph)
 
-#file_in <- load("heart-disease.names")
+# with the heart data set
+x <- readr::read_file('http://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/hungarian.data')
+df <- read.table(text = gsub('(\\d)\\n', '\\1 ', x))
 
+radial_barchart_static(df[,-76], "",interactive = T)
+```
 
-mock = create_mockdata(Nf=25,n_treatments = 2,ngroups = 5)
+```{r, message=FALSE}
+mock = create_mockdata(Nf=30,n_treatments = 2,ngroups = 5)
 dfs = mock$dfs
 grs = mock$grs
-dfs
+
 df = dfs[c(".id", ".phase", ".cluster", grs$feature[grs$.gr_id != 1])]
 
 df <- df %>%
@@ -72,19 +97,22 @@ df <- df %>%
 data_cluster <- df %>% mutate(.cluster = fct_drop(as.factor(.cluster))) %>% select(-c(.cluster))
 
 group_names = grs$.gr_name[grs$.gr_id != 1]
-#
 
 data_static = data_cluster %>%select(!c(".id",".phase"))
-radial_barchart_static(data_static, group_names,interactive = F)
+radial_barchart_static(data_static, group_names,interactive = T)
+```
 
+```{r, message=FALSE}
 data_linechart = df%>%select(!c(".phase"))
-radial_line_chart(data_linechart,group_names)
+radial_line_chart(data_linechart,group_names, interactive = T)
+```
 
-radial_barchart_post_treatment(data_cluster,group_names)
+```{r, message=FALSE}
+radial_barchart_compare(data_cluster,group_names, interactive = T)
 ```
 
 
 The barchart provides a graphical representation of a subpopulation. Since each feature was scaled (z-score normalized) before clustering, it is thus possible to show features with originally different scales in a combined visualization. Due to feature scaling, bars inclined to the outside represent feature averages above the overall population mean and bars inclined to the inside represent feature averages below the population mean. 
 For example, if the bar or point of a feature is +1.0, it means that the average feature value is one standard deviation above the feature average of the whole population and a value of -1 indicates that the subpopulation average is 1 standard deviation smaller than the overall population average. 
-Furthermore with the post treatment bar chart it is possible to compare a subpopulation over time. The color of the arrows and feature labels allows to illustrate the effect of a measurement.
+Furthermore with the comparison bar chart it is possible to compare a subpopulation over time. The color of the arrows and feature labels allows to illustrate the effect of a measurement.
 Finally, the radial line chart depicts cluster averages for each feature and provides therefore a compact summary of one or all clusters.

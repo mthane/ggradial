@@ -21,3 +21,5 @@ ERROR_DT_NOT_IN_RANGE <- "delta_threshold needs to have a value between 0.05 and
 
 ERROR_DF_MISSING_COLUMN <- "df does not contain a cluster column"
 ERROR_CC_UNKNOWN_COLOR <- "color_inner_circle has unknown color"
+ERROR_DF_MISSING_TREATMENTS <- "the provided phase column has to contain at least two different phases"
+ERROR_DF_INSUFFICIENT_IDS <- "the provided id column has to contain ids related to at least two different phases"

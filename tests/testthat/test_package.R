@@ -1,7 +1,7 @@
 
 library(testthat)
 
-test <- function(chart_function, is_post_treatment = F, is_line_chart = F) {
+test <- function(chart_function, is_comparison = F, is_line_chart = F) {
 
   ## ----------------------------  NON VISUAL TESTING --------------------------------------
 
@@ -17,7 +17,6 @@ test <- function(chart_function, is_post_treatment = F, is_line_chart = F) {
 
   test_that("group_names error", {
     expect_error(chart_function(df = data_cluster, group_names = NULL), regexp = ERROR_GN_WRONG_TYPE)
-    expect_error(chart_function(df = data_cluster, group_names = ""), regexp = ERROR_GN_WRONG_TYPE)
   })
 
   ## -----
@@ -135,21 +134,7 @@ test <- function(chart_function, is_post_treatment = F, is_line_chart = F) {
 
   ## -----
 
-  # # Testing of legend_label
-  # test_that("legend_label working cases", {
-  #   expect_is(chart_function(df = data_cluster, group_names = group_names, legend_label = "green"), "gg")
-  # })
-  #
-  # test_that("legend_label error", {
-  #   expect_error(chart_function(df = data_cluster, group_names = group_names, legend_label = NULL), regexp = ERROR_LL_WRONG_TYPE)
-  #   expect_error(chart_function(df = data_cluster, group_names = group_names, legend_label = 123), regexp = ERROR_LL_WRONG_TYPE)
-  #   expect_error(chart_function(df = data_cluster, group_names = group_names, legend_label = NA), regexp = ERROR_LL_WRONG_TYPE)
-  #   expect_error(chart_function(df = data_cluster, group_names = group_names, legend_label = c(1,1)), regexp = ERROR_LL_WRONG_TYPE)
-  # })
-
-  ## -----
-
-  if (is_post_treatment) {
+  if (is_comparison) {
     # Testing of delta_threshold
     test_that("delta_threshold working cases", {
       expect_is(chart_function(df = data_cluster, group_names = group_names, delta_threshold = 0.37), "gg")
@@ -200,11 +185,6 @@ test <- function(chart_function, is_post_treatment = F, is_line_chart = F) {
   }
 
   if (is_line_chart) {
-
-    # Testing of cluster
-    test_that("cluster working cases", {
-      expect_is(chart_function(df = data_cluster, group_names = group_names, cluster = "safety"), "gg")
-    })
 
     test_that("cluster error", {
       expect_error(chart_function(df = data_cluster, group_names = group_names, cluster = NULL), regexp = ERROR_DF_MISSING_COLUMN)
@@ -259,8 +239,7 @@ df <- df %>%
 data_cluster <- df %>% mutate(.cluster = fct_drop(as.factor(.cluster))) %>% select(-c(.cluster))
 
 group_names = grs$.gr_name
-#radial_barchart_post_treatment(data_cluster, group_names,interactive = F)
-test(chart_function = radial_barchart_post_treatment, is_post_treatment = T)
+test(chart_function = radial_barchart_compare, is_comparison = T)
 
 ## -----
 

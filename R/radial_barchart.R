@@ -66,7 +66,6 @@ radial_barchart_static <- function(df,
 
   # show_group_names
   if(!is.logical(show_group_names)) stop(ERROR_SGN_WRONG_TYPE)
-  ## ------------------------------------------------------- Assertions
 
   # Convert group_names to factor if it is not already
   if(!is.factor(group_names)) group_names <- as.factor(group_names)
@@ -74,7 +73,6 @@ radial_barchart_static <- function(df,
   # Calculate cluster average for each feature
   data <- df %>%
     pivot_longer(names_to = "f", values_to = "v", cols = everything()) %>%
-    #inner_join(janitor::tabyl(data_cluster, .cluster) %>% select(.cluster, n), by = ".cluster") %>%
     mutate(n = nrow(df)) %>%
     group_by(f) %>%
     summarize(avg = mean(v), sd = sd(v), n = n[1]) %>%
@@ -83,7 +81,6 @@ radial_barchart_static <- function(df,
     # winsorize cluster averages
     mutate(avg = ifelse(avg > scale_rng[2], scale_rng[2], avg)) %>%
     mutate(avg = ifelse(avg < scale_rng[1], scale_rng[1], avg)) %>%
-    # mutate(sd = if_else(avg < 0, sd, -sd)) %>%
     inner_join(tibble(f = names(df %>% select(-starts_with("."))), group = group_names), by = "f") %>%
     arrange(group, f)
 
@@ -98,7 +95,6 @@ radial_barchart_static <- function(df,
     complete(f_id = -1:(max(f_id)+2), fill = list(feature = "", avg = NA_real_)) %>%
     ungroup()
 
-  # browser()
   # base_data ----
   # position of group lines and labels
   base_data <- df_plot %>%
@@ -113,8 +109,6 @@ radial_barchart_static <- function(df,
                              between(title/max(end), 0.575, 0.925) ~ 0,
                              TRUE ~ 0.5)) %>%
     mutate(hjust = if_else(title/max(end) > 0.9, 0, hjust)) %>%
-    # mutate(hjust = case_when(title/max(end) < 0.5 ~ 1,
-    #                          TRUE ~ 0)) %>%
     mutate(vjust = case_when(title/max(end) < 0.1 | title/max(end) > 0.9 ~ 1,
                              between(title/max(end), 0.4, 0.6) ~ 0,
                              TRUE ~ 0.5)) %>%
@@ -127,7 +121,6 @@ radial_barchart_static <- function(df,
   # grid_data ----
   # position of grid lines between groups
   grid_data <- df_plot %>%
-    # filter(.cluster == .cluster[1]) %>%
     filter(is.na(id)) %>%
     select(f_id) %>%
     mutate(diff = f_id - lag(f_id, default = f_id[1])) %>%
@@ -149,15 +142,11 @@ radial_barchart_static <- function(df,
     summarize(f_id = mean(f_id), avg = max(avg), y = max(y)) %>%
     ungroup() %>%
     mutate(rel_pos = f_id / diff(c(f_id_min[1], f_id_max[1]))) %>%
-    # select(f_id_adj, f, avg) %>%
-    # mutate(feature_suffix = str_trunc(feature_suffix, 12)) %>%
     mutate(y = if_else(y > 0, y, 0)) %>%
     mutate(angle = 90 - 360 * (rel_pos + 0.035)) %>%
-    # mutate(angle = 90 - 360 * ((row_number() + 2 - 0.5) / (n() + 4))) %>%
     mutate(hjust = if_else(angle < -90, 1, 0)) %>%
     mutate(angle = if_else(angle < -90, angle + 180, angle)) %>%
-    drop_na() #%>%
-  # mutate(size = if_else(avg >= 0 & (avg * 5 + nchar(f) > 20), 7/.pt, 8/.pt))
+    drop_na()
 
   if(!is.null(tooltip_labels))
   {
@@ -177,7 +166,6 @@ radial_barchart_static <- function(df,
         tooltip_bars == "ci" ~ paste0("ci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]"),
         tooltip_bars == "all" ~ paste0("&mu;=", format(round(avg, 3), nsmall = 3), "\n&sigma;=", format(round(sd, 3), nsmall = 3), "\nci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]")))
   }
-  # browser()
   # define font sizes ----
   font_sizes <- list(
     inner_label = ifelse(interactive, 14/.pt, 10/.pt),
@@ -195,15 +183,11 @@ radial_barchart_static <- function(df,
   p <- p + scale_x_continuous(limits = x_lim, expand = c(0,0),
                               breaks = df_plot$f_id, labels = df_plot$f)
   p <- p + scale_y_continuous(limits = y_lim)
-  #p <- p + guides(fill = "none")
   p <- p + theme_minimal()
-  #p <- p + theme(legend.position = "top")
   p <- p + theme(axis.text = element_blank())
   p <- p + theme(axis.title = element_blank())
   p <- p + theme(panel.grid = element_blank())
-  #p <- p + theme(legend.title = element_text(size = font_sizes$legend_title, face = "bold"))
-  #p <- p + theme(legend.text = element_text(size = font_sizes$legend_text))
-  #p <- p + theme(legend.key.size = unit(font_sizes$legend_key, "cm"))
+
   # draw inner circle ----
   p <- p + annotate("rect", xmin = x_lim[1], xmax = x_lim[2],
                     ymin = y_lim[1], ymax = scale_rng[1]-0.2,
@@ -235,15 +219,10 @@ radial_barchart_static <- function(df,
     p <- p + theme(legend.key.height = unit(1, "lines"))
   }
 
-  # p <- p + scale_fill_distiller(palette = "RdYlBu",
-  #                               limits = c(scale_rng[1], scale_rng[2]),
-  #                               breaks = seq(scale_rng[1], scale_rng[2], length.out = 7),
-  #                               labels = c("-1.5 SD", "-1.0 SD", "-0.5 SD", "Patient\naverage",
-  #                                          "+0.5 SD", "+1.0 SD", "+1.5 SD"))
   p <- p + scale_fill_distiller(palette = "RdYlBu",
                                 limits = c(scale_rng[1], scale_rng[2]),
                                 breaks = c(scale_rng[1], 0, scale_rng[2]),
-                                labels = c(scale_rng[1], "Patient\naverage", scale_rng[2]))
+                                labels = c(scale_rng[1], "Average", scale_rng[2]))
 
   # add some lines between feature groups ----
   ## the small grey lines

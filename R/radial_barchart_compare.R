@@ -21,7 +21,7 @@
 #' @return the radial barchart as ggplot
 #' @export
 
-radial_barchart_post_treatment <- function(df,
+radial_barchart_compare <- function(df,
                                            group_names,
                                            id = ".id",
                                            phase = ".phase",
@@ -72,10 +72,6 @@ radial_barchart_post_treatment <- function(df,
   # show_group_names
   if(!is.logical(show_group_names)) stop(ERROR_SGN_WRONG_TYPE)
 
-  # legend_label
-  # if(!is.character(legend_label)) stop(ERROR_LL_WRONG_TYPE)
-  ## ------------------------------------------------------- Assertions
-
   # delta_threshold
   if(!is.numeric(delta_threshold)) stop(ERROR_DT_WRONG_TYPE)
   if(delta_threshold < 0.05 | delta_threshold > 1) stop(ERROR_DT_NOT_IN_RANGE)
@@ -95,16 +91,6 @@ radial_barchart_post_treatment <- function(df,
 
   ## ------------------------------------------------------- Assertions
 
-  ## probably could be removed an checked with an assert statement
-  #vars_dummy <- setdiff(c(".id", ".phase"), names(df))
-  #if(length(vars_dummy) > 0) for(d in vars_dummy) df <- mutate(df, !!d := NA_character_)
-  #df <- select(df, .id, .phase, everything())
-
-  # if(!all(c(id,phase)%in%colnames(df))){
-  #   stop("The passed data does not contain the columns id and phase!")
-  # }
-
-
   df <- df%>%
     select(!c(phase,id))%>%
     mutate(.id = df[[id]])%>%
@@ -123,10 +109,13 @@ radial_barchart_post_treatment <- function(df,
     filter(n == 2) %>%
     select(-n)
 
+  if(data_cluster %>% nrow() == 0){
+    stop(ERROR_DF_INSUFFICIENT_IDS)
+  }
+
   # Calculate cluster average for each feature
   data <- data_cluster %>%
     pivot_longer(names_to = "f", values_to = "v", cols = feature_names) %>%
-    #inner_join(janitor::tabyl(data_cluster, .cluster) %>% select(.cluster, n), by = ".cluster") %>%
     mutate(n = nrow(df)) %>%
     group_by(.phase, f) %>%
     summarize(avg = mean(v), sd = sd(v), n = n[1]) %>%
@@ -135,7 +124,6 @@ radial_barchart_post_treatment <- function(df,
     # winsorize cluster averages
     mutate(avg = ifelse(avg > scale_rng[2], scale_rng[2], avg)) %>%
     mutate(avg = ifelse(avg < scale_rng[1], scale_rng[1], avg)) %>%
-    # mutate(sd = if_else(avg < 0, sd, -sd)) %>%
     inner_join(tibble(f = names(df %>% select(-starts_with("."))), group = group_names), by = "f") %>%
     arrange(group, f)
 
@@ -151,7 +139,6 @@ radial_barchart_post_treatment <- function(df,
     complete(f_id = -1:(max(f_id)+2), fill = list(feature = "", avg = NA_real_)) %>%
     ungroup()
 
-  # browser()
 
   # base_data ----
   # position of group lines and labels
@@ -168,8 +155,6 @@ radial_barchart_post_treatment <- function(df,
                              between(title/max(end), 0.575, 0.925) ~ 0,
                              TRUE ~ 0.5)) %>%
     mutate(hjust = if_else(title/max(end) > 0.9, 0, hjust)) %>%
-    # mutate(hjust = case_when(title/max(end) < 0.5 ~ 1,
-    #                          TRUE ~ 0)) %>%
     mutate(vjust = case_when(title/max(end) < 0.1 | title/max(end) > 0.9 ~ 1,
                              between(title/max(end), 0.4, 0.6) ~ 0,
                              TRUE ~ 0.5)) %>%
@@ -181,7 +166,6 @@ radial_barchart_post_treatment <- function(df,
   # grid_data ----
   # position of grid lines between groups
   grid_data <- df_plot %>%
-    # filter(.cluster == .cluster[1]) %>%
     filter(is.na(id)) %>%
     select(f_id) %>%
     mutate(diff = f_id - lag(f_id, default = f_id[1])) %>%
@@ -203,15 +187,11 @@ radial_barchart_post_treatment <- function(df,
     summarize(f_id = mean(f_id), avg = max(avg), y = max(y)) %>%
     ungroup() %>%
     mutate(rel_pos = f_id / diff(c(f_id_min[1], f_id_max[1]))) %>%
-    # select(f_id_adj, f, avg) %>%
-    # mutate(feature_suffix = str_trunc(feature_suffix, 12)) %>%
     mutate(y = if_else(y > 0, y, 0)) %>%
     mutate(angle = 90 - 360 * (rel_pos + 0.035)) %>%
-    # mutate(angle = 90 - 360 * ((row_number() + 2 - 0.5) / (n() + 4))) %>%
     mutate(hjust = if_else(angle < -90, 1, 0)) %>%
     mutate(angle = if_else(angle < -90, angle + 180, angle)) %>%
-    drop_na() #%>%
-  # mutate(size = if_else(avg >= 0 & (avg * 5 + nchar(f) > 20), 7/.pt, 8/.pt))
+    drop_na()
 
   if(!is.null(tooltip_labels))
   {
@@ -228,6 +208,9 @@ radial_barchart_post_treatment <- function(df,
 
   treatments <- unique(df_plot$.phase)
   treatments <- treatments[!is.na(treatments)]
+  if(length(treatments) <= 1){
+    stop(ERROR_DF_MISSING_TREATMENTS)
+  }
   segments_dfs <- list()
   for (i in seq(1,length(treatments)-1)){
     tr1 <- treatments[i]
@@ -256,21 +239,26 @@ radial_barchart_post_treatment <- function(df,
   label_data <- label_data %>% left_join(teffect_segments %>% select(f, effect_category), by = "f")
 
   if(interactive) {
-
-    df_plot <- df_plot %>%
-      left_join(teffect_segments %>% select(f, avg_T0, avg_T1)) %>%
-      mutate(tooltip = case_when(
-        tooltip_bars == "sd" ~ paste0("&sigma;=", format(round(sd, 3), nsmall = 3)),
-        tooltip_bars == "ci" ~ paste0("ci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]"),
-        tooltip_bars == "difference" ~ paste0("difference=", format(round(avg_T1 - avg_T0, 3), nsmall = 3)),
-        tooltip_bars == "percentage difference" ~ paste0("% difference=", format(round(abs((avg_T1 - avg_T0) / avg_T0) * 100, 1), nsmall = 1)),
-        tooltip_bars == "all" ~ paste0("&mu;=", format(round(avg, 3), nsmall = 3), "\n&sigma;=", format(round(sd, 3), nsmall = 3), "\nci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]", "\ndifference=", format(round(avg_T1 - avg_T0, 3), nsmall = 3), "\n% difference=", format(round(abs((avg_T1 - avg_T0) / avg_T0)  * 100, 1), nsmall = 1)),
-        TRUE ~ paste0("&mu;=", format(round(avg, 3), nsmall = 3)))
-      ) %>%
-      select(-c(avg_T0, avg_T1))
+    if (length(treatments) == 2 || (tooltip_bars != "difference" &&
+                                    tooltip_bars != "percentage difference" &&
+                                    tooltip_bars != "all")) {
+      df_plot <- df_plot %>%
+        left_join(teffect_segments %>% select(f, avg_T1, avg_T2)) %>%
+        mutate(tooltip = case_when(
+          tooltip_bars == "sd" ~ paste0("&sigma;=", format(round(sd, 3), nsmall = 3)),
+          tooltip_bars == "ci" ~ paste0("ci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]"),
+          tooltip_bars == "difference" ~ paste0("difference=", format(round(avg_T2 - avg_T1, 3), nsmall = 3)),
+          tooltip_bars == "percentage difference" ~ paste0("% difference=", format(round(abs((avg_T2 - avg_T1) / avg_T1) * 100, 1), nsmall = 1)),
+          tooltip_bars == "all" ~ paste0("&mu;=", format(round(avg, 3), nsmall = 3), "\n&sigma;=", format(round(sd, 3), nsmall = 3), "\nci=[", format(round(avg-error, 3), nsmall = 3), ",", format(round(avg+error, 3), nsmall = 3), " ]", "\ndifference=", format(round(avg_T2 - avg_T1, 3), nsmall = 3), "\n% difference=", format(round(abs((avg_T2 - avg_T1) / avg_T1)  * 100, 1), nsmall = 1)),
+          TRUE ~ paste0("&mu;=", format(round(avg, 3), nsmall = 3)))
+        )  %>%
+        select(-c(avg_T1, avg_T2))
+    } else {
+      warning()
+    }
   }
-  # browser()
-  # define font sizes ----
+
+    # define font sizes ----
   font_sizes <- list(
     inner_label = ifelse(interactive, 4/.pt, 1/.pt),
     y_axis = ifelse(interactive, 9/.pt, 6/.pt),
@@ -287,15 +275,11 @@ radial_barchart_post_treatment <- function(df,
   p <- p + scale_x_continuous(limits = x_lim, expand = c(0,0),
                               breaks = df_plot$f_id, labels = df_plot$f)
   p <- p + scale_y_continuous(limits = y_lim)
-  # p <- p + guides(fill = "none")
   p <- p + theme_minimal()
-  # p <- p + theme(legend.position = "top")
   p <- p + theme(axis.text = element_blank())
   p <- p + theme(axis.title = element_blank())
   p <- p + theme(panel.grid = element_blank())
-  # p <- p + theme(legend.title = element_text(size = font_sizes$legend_title, face = "bold"))
-  # p <- p + theme(legend.text = element_text(size = font_sizes$legend_text))
-  # p <- p + theme(legend.key.size = unit(font_sizes$legend_key, "cm"))
+
   # draw inner circle ----
   p <- p + annotate("rect", xmin = x_lim[1], xmax = x_lim[2],
                     ymin = y_lim[1], ymax = scale_rng[1]-0.2,
@@ -319,17 +303,12 @@ radial_barchart_post_treatment <- function(df,
     p <- p + do.call(geom_col, current_opts)
     p <- p + guides(fill = guide_colorbar(title = NULL, ticks.colour = "grey", nbin = 300,
                                           ticks.linewidth = 1.5))
-    p <- p + theme(legend.position = c(0.975,0.975))
-    p <- p + theme(legend.justification = c(1,1))
-    p <- p + theme(legend.direction = "vertical")
-    p <- p + theme(legend.key.width = unit(0.5, "lines"))
-    p <- p + theme(legend.key.height = unit(1, "lines"))
   }
 
   p <- p + scale_fill_distiller(palette = "RdYlBu",
                                 limits = c(scale_rng[1], scale_rng[2]),
                                 breaks = c(scale_rng[1], 0, scale_rng[2]),
-                                labels = c("-1.5 SD", "Patient\naverage", "+1.5 SD"))
+                                labels = c("-1.5 SD", "Average", "+1.5 SD"))
 
   # add lines between features
   # p <- p+geom_segment(data=label_data,aes(x=f_id  ,y=y-1.5,
@@ -392,14 +371,10 @@ radial_barchart_post_treatment <- function(df,
     p <- p +
       geom_segment(data = teffect_segments, aes_string(x = paste0("f_id_adj_",tr1), xend = paste0("f_id_adj_",tr2),
                                                        y = paste0("avg_",tr1), yend =paste0("avg_",tr2), color = "effect_category"),
-                   arrow = arrow(length = unit(c(0.3,0.2)[1+interactive], "lines"), type = "closed"),
-                   #           key_glyph = "segment_custom", size = 0.45) +
+                   arrow = arrow(length = unit(c(0.3,0.2)[1+interactive], "lines"), type = "closed")
       )
   }
-  # geom_segment(data = teffect_segments, aes(x = f_id_adj_A - 0.35, xend = f_id_adj_E + 0.35,
-  #                                           color = effect_category),
-  #              y = scale_rng[1], yend = scale_rng[1],
-  #              size = 1) +
+
   p <- p + guides(color = guide_legend(title = "Treatment effect")) +
     scale_color_manual(values = c("darkgreen", "black", "red"), drop = FALSE,
                        labels = unname(latex2exp::TeX(levels(teffect_segments$effect_category))))
@@ -410,4 +385,3 @@ radial_barchart_post_treatment <- function(df,
     p
   }
 }
-

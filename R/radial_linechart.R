@@ -69,10 +69,6 @@ radial_line_chart <- function(df,
   # show_group_names
   if(!is.logical(show_group_names)) stop(ERROR_SGN_WRONG_TYPE)
 
-  # # legend_label
-  # if(!is.character(legend_label)) stop(ERROR_LL_WRONG_TYPE)
-  ## ------------------------------------------------------- Assertions
-
   # cluster
   if (is.null(cluster) || !(cluster %in% names(df)))
     stop(ERROR_DF_MISSING_COLUMN)
@@ -84,9 +80,6 @@ radial_line_chart <- function(df,
   if(an.error.occured) stop(ERROR_CC_UNKNOWN_COLOR)
 
   ## ------------------------------------------------------- Assertions
-
-  #if (is.null(cluster_idx) && post_treatment)
-  #  stop("Displaying treatment effects for all clusters at the same time is not implemented yet.")
 
   if (is.null(color_clusters)) {
     color_clusters <- colorRampPalette(RColorBrewer::brewer.pal(9, "Set1"))(length(unique(df$.cluster)))
@@ -110,13 +103,12 @@ radial_line_chart <- function(df,
     group_by(.cluster, f) %>%
     summarize(avg = mean(v),
               sd = sd(v),
-              n = n[1]) %>%  # why is n[1] selected?
+              n = n[1]) %>%
     ungroup() %>%
     mutate(error = qnorm(0.975) * sd / sqrt(n)) %>%
     # winsorize cluster averages
     mutate(avg = ifelse(avg > scale_rng[2], scale_rng[2], avg)) %>%
     mutate(avg = ifelse(avg < scale_rng[1], scale_rng[1], avg)) %>%
-    # mutate(sd = if_else(avg < 0, sd, -sd)) %>%
     inner_join(tibble(f = names(df %>% select(
       -starts_with(".")
     )), group = group_names), by = "f") %>%
@@ -136,8 +128,6 @@ radial_line_chart <- function(df,
              fill = list(feature = "", avg = NA_real_)) %>%
     ungroup()
 
-  # browser()
-
   # base_data ----
   # position of group lines and labels
   base_data <- df_plot %>%
@@ -154,8 +144,6 @@ radial_line_chart <- function(df,
       TRUE ~ 0.5
     )) %>%
     mutate(hjust = if_else(title / max(end) > 0.9, 0, hjust)) %>%
-    # mutate(hjust = case_when(title/max(end) < 0.5 ~ 1,
-    #                          TRUE ~ 0)) %>%
     mutate(vjust = case_when(
       title / max(end) < 0.1 | title / max(end) > 0.9 ~ 1,
       between(title / max(end), 0.4, 0.6) ~ 0,
@@ -170,7 +158,6 @@ radial_line_chart <- function(df,
   # grid_data ----
   # position of grid lines between groups
   grid_data <- df_plot %>%
-    # filter(.cluster == .cluster[1]) %>%
     filter(is.na(id)) %>%
     select(f_id) %>%
     mutate(diff = f_id - lag(f_id, default = f_id[1])) %>%
@@ -194,15 +181,11 @@ radial_line_chart <- function(df,
               y = max(y)) %>%
     ungroup() %>%
     mutate(rel_pos = f_id / diff(c(f_id_min[1], f_id_max[1]))) %>%
-    # select(f_id_adj, f, avg) %>%
-    # mutate(feature_suffix = str_trunc(feature_suffix, 12)) %>%
     mutate(y = if_else(y > 0, y, 0)) %>%
     mutate(angle = 90 - 360 * (rel_pos + 0.035)) %>%
-    # mutate(angle = 90 - 360 * ((row_number() + 2 - 0.5) / (n() + 4))) %>%
     mutate(hjust = if_else(angle < -90, 1, 0)) %>%
     mutate(angle = if_else(angle < -90, angle + 180, angle)) %>%
-    drop_na() #%>%
-  # mutate(size = if_else(avg >= 0 & (avg * 5 + nchar(f) > 20), 7/.pt, 8/.pt))
+    drop_na()
 
   if (!is.null(tooltip_labels))
   {
@@ -212,10 +195,6 @@ radial_line_chart <- function(df,
   } else {
     label_data <- label_data %>% mutate(f_desc = NA_character_)
   }
-
-
-  # browser()
-
 
   x_lim <- c(-2, 2) + range(df_plot$f_id)
   y_lim <-
@@ -233,7 +212,6 @@ radial_line_chart <- function(df,
       )
   }
 
-  # browser()
   # define font sizes ----
   font_sizes <- list(
     inner_label = ifelse(interactive, 14 / .pt, 10 / .pt),
@@ -256,15 +234,11 @@ radial_line_chart <- function(df,
     labels = df_plot$f
   )
   p <- p + scale_y_continuous(limits = y_lim)
-  # p <- p + guides(fill = "none")
   p <- p + theme_minimal()
-  # p <- p + theme(legend.position = "top")
   p <- p + theme(axis.text = element_blank())
   p <- p + theme(axis.title = element_blank())
   p <- p + theme(panel.grid = element_blank())
-  # p <- p + theme(legend.title = element_text(size = font_sizes$legend_title, face = "bold"))
-  # p <- p + theme(legend.text = element_text(size = font_sizes$legend_text))
-  # p <- p + theme(legend.key.size = unit(font_sizes$legend_key, "cm"))
+
   # draw inner circle ----
   p <- p + annotate(
     "rect",
