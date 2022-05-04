@@ -51,3 +51,6 @@ the radial line chart as ggplot
 \description{
 Creates a radial line chart which shows the average feature values for each cluster.
 }
+\examples{
+radial_line_chart(data_linechart, group_names, cluster = ".cluster", inner_label = "Cluster results", color_inner_circle = "royalblue", scale_rng = c(-1.75,1.75), interactive = TRUE, tooltip_bars = "all", tooltip_labels = data.frame(label = c("f_4", "f_7"), description = c("Field #4", "Field #7")), show_group_names = TRUE)
+}

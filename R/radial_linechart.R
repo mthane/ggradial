@@ -18,6 +18,7 @@
 #' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
 #'
 #' @return the radial line chart as ggplot
+#' @examples radial_line_chart(data_linechart, group_names, cluster = ".cluster", inner_label = "Cluster results", color_inner_circle = "royalblue", scale_rng = c(-1.75,1.75), interactive = TRUE, tooltip_bars = "all", tooltip_labels = data.frame(label = c("f_4", "f_7"), description = c("Field #4", "Field #7")), show_group_names = TRUE)
 #' @export
 
 radial_line_chart <- function(df,
@@ -247,7 +248,7 @@ radial_line_chart <- function(df,
     ymin = y_lim[1],
     ymax = scale_rng[1] - 0.2,
     color = "transparent",
-    fill = col2rgb(color_inner_circle),
+    fill = color_inner_circle,
     alpha = 0.2
   )
 

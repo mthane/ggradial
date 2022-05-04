@@ -45,3 +45,6 @@ the radial barchart as ggplot
 \description{
 Creates a radial barchart which shows a cluster's average feature values.
 }
+\examples{
+radial_barchart_static(data_static, group_names, inner_label = "Results", color_inner_circle = "#E3E3E3", scale_rng = c(-1.6,1.6), interactive = TRUE, tooltip_bars = "sd", tooltip_labels = data.frame(label = c("f_2"), description = c("Mock Description")), show_group_names = FALSE)
+}

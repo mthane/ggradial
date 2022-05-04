@@ -19,6 +19,7 @@
 #' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
 #'
 #' @return the radial barchart as ggplot
+#' @examples radial_barchart_compare(data_cluster, group_names, id = ".id", phase = ".phase", feature_names = NULL, inner_label = "Comparison", color_inner_circle = "#ffff00", scale_rng = c(-1.55,1.55), interactive = TRUE, tooltip_bars = "ci", tooltip_labels = data.frame(label = c("f_5"), description = c("Important")), show_group_names = FALSE)
 #' @export
 
 radial_barchart_compare <- function(df,
@@ -283,7 +284,7 @@ radial_barchart_compare <- function(df,
   # draw inner circle ----
   p <- p + annotate("rect", xmin = x_lim[1], xmax = x_lim[2],
                     ymin = y_lim[1], ymax = scale_rng[1]-0.2,
-                    color = "transparent", fill = col2rgb(color_inner_circle), alpha = 0.2)
+                    color = "transparent", fill = color_inner_circle, alpha = 0.2)
   # central inner label: cluster id and number of instances ----
   p <- p +
     annotate("text", x = x_lim[1], y = y_lim[1], # + 0.5,

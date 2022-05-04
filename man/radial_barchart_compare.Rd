@@ -56,3 +56,6 @@ the radial barchart as ggplot
 \description{
 Creates a radial barchart which shows a cluster's average feature values at different time periods.
 }
+\examples{
+radial_barchart_compare(data_cluster, group_names, id = ".id", phase = ".phase", feature_names = NULL, inner_label = "Comparison", color_inner_circle = "#ffff00", scale_rng = c(-1.55,1.55), interactive = TRUE, tooltip_bars = "ci", tooltip_labels = data.frame(label = c("f_5"), description = c("Important")), show_group_names = FALSE)
+}
