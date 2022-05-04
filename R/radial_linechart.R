@@ -251,6 +251,12 @@ radial_line_chart <- function(df,
     alpha = 0.2
   )
 
+  # adding inner label
+  p <- p +
+    annotate("text", x = x_lim[1], y = y_lim[1], # + 0.5,
+             label = inner_label,
+             size = font_sizes$inner_label, fontface = "bold", lineheight = 1, vjust = 0.5)
+
   # add radar lines ----
   current_opts <- list(
     mapping = aes(
