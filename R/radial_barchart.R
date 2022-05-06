@@ -16,6 +16,7 @@
 #' @param show_group_names Boolean to indicate whether the group names should be shown inside the inner circle. Default is true (optional).
 #'
 #' @return the radial barchart as ggplot
+#' @examples radial_barchart_static(data_static, group_names, inner_label = "Results", color_inner_circle = "#E3E3E3", scale_rng = c(-1.6,1.6), interactive = TRUE, tooltip_bars = "sd", tooltip_labels = data.frame(label = c("f_2"), description = c("Mock Description")), show_group_names = FALSE)
 #' @export
 
 
@@ -192,7 +193,7 @@ radial_barchart_static <- function(df,
   p <- p + annotate("rect", xmin = x_lim[1], xmax = x_lim[2],
                     ymin = y_lim[1], ymax = scale_rng[1]-0.2,
                     color = "transparent",
-                    fill = col2rgb(color_inner_circle), alpha = 0.2)
+                    fill = color_inner_circle, alpha = 0.2)
   # central inner label: cluster id and number of instances ----
   p <- p +
     annotate("text", x = x_lim[1], y = y_lim[1], # + 0.5,
