@@ -22,18 +22,18 @@
 #' @export
 
 radial_barchart_compare <- function(df,
-                                           group_names,
-                                           id = ".id",
-                                           phase = ".phase",
-                                           feature_names = NULL,
-                                           inner_label = "",
-                                           color_inner_circle = "grey60",
-                                           scale_rng = c(-1,1)*1.5,
-                                           interactive = FALSE,
-                                           tooltip_bars = "",
-                                           tooltip_labels = NULL,
-                                           delta_threshold = 0.25,
-                                           show_group_names = TRUE) {
+                                     group_names,
+                                     id = ".id",
+                                     phase = ".phase",
+                                     feature_names = NULL,
+                                     inner_label = "",
+                                     color_inner_circle = "grey60",
+                                     scale_rng = c(-1,1)*1.5,
+                                     interactive = FALSE,
+                                     tooltip_bars = "",
+                                     tooltip_labels = NULL,
+                                     delta_threshold = 0.25,
+                                     show_group_names = TRUE) {
 
   ## ------------------------------------------------------- Assertions
   # df
@@ -104,10 +104,10 @@ radial_barchart_compare <- function(df,
   if(!is.factor(group_names)) group_names <- as.factor(group_names)
 
   # If post_treatment, filter patients that have 2 measurements
-  data_cluster <- df %>%
-    add_count(.id) %>%
-    filter(n == 2) %>%
-    select(-n)
+  # data_cluster <- df %>%
+  #   add_count(.id) %>%
+  #   filter(n == 2) %>%
+  #   select(-n)
 
   if(data_cluster %>% nrow() == 0){
     stop(ERROR_DF_INSUFFICIENT_IDS)
