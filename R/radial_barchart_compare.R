@@ -104,11 +104,11 @@ radial_barchart_compare <- function(df,
   # Convert group_names to factor if it is not already
   if(!is.factor(group_names)) group_names <- as.factor(group_names)
 
-  # If post_treatment, filter patients that have 2 measurements
-  # data_cluster <- df %>%
-  #   add_count(.id) %>%
-  #   filter(n == 2) %>%
-  #   select(-n)
+  # If post_treatment, filter patients that have at least 2 measurements
+  data_cluster <- df %>%
+    add_count(.id) %>%
+    filter(n >= 2) %>%
+    select(-n)
 
   if(data_cluster %>% nrow() == 0){
     stop(ERROR_DF_INSUFFICIENT_IDS)
@@ -261,7 +261,7 @@ radial_barchart_compare <- function(df,
 
     # define font sizes ----
   font_sizes <- list(
-    inner_label = ifelse(interactive, 4/.pt, 1/.pt),
+    inner_label = ifelse(interactive, 14/.pt, 10/.pt),
     y_axis = ifelse(interactive, 9/.pt, 6/.pt),
     group_names = ifelse(interactive, 7/.pt, 5/.pt),
     feature_names = ifelse(interactive, 11/.pt, 8/.pt),

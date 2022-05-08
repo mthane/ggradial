@@ -132,14 +132,14 @@ df <- df %>%
   filter(.cluster == levels(.cluster)[2L])
 data_linechart = df%>%select(!c(".phase"))
 
-radial_line_chart(data_linechart,group_names, interactive = T,inner_label="Costum Label")
+radial_line_chart(data_linechart,group_names, interactive = T,inner_label="Costum\nLabel")
 ```
 ## Bar Chart Comparison
 
 Here we can see an example with more then two treatments.
 
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 mock = create_mockdata(Nf=30,n_treatments =4,ngroups = 5)
 dfs = mock$dfs
 grs = mock$grs
@@ -154,7 +154,7 @@ data_cluster <- df %>% mutate(.cluster = fct_drop(as.factor(.cluster))) %>% sele
 
 group_names = grs$.gr_name[grs$.gr_id != 1]
 
-radial_barchart_compare(data_cluster,group_names, interactive = T,inner_label="Costum Label")
+radial_barchart_compare(data_cluster,group_names, interactive = T)
 ```
 ## Heart Disease Dataset
 
